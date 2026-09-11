@@ -5,7 +5,6 @@ from pydantic import HttpUrl
 from bs4 import BeautifulSoup
 import requests
 import pydantic
-import os
 
 app = FastAPI(
     title="BlogToReel.ai API",
@@ -24,12 +23,146 @@ app.add_middleware(
 class ArticleRequest(pydantic.BaseModel):
     url: HttpUrl
 
+HTML_CONTENT = """
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogToReel - تحويل المقالات إلى فيديوهات</title>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            display: none;
+            word-break: break-word;
+        }
+        .loading {
+            text-align: center;
+            color: #007bff;
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>تحويل المقال إلى ريلز (BlogToReel)</h2>
+    <div class="form-group">
+        <label for="blogUrl">أدخل رابط المقال:</label>
+        <input type="url" id="blogUrl" placeholder="https://example.com/article" required>
+    </div>
+    <button onclick="convertBlog()">تحويل المقال الآن</button>
+    
+    <div id="loading" class="loading">جاري معالجة المقال وصياغة السكربت... يرجى الانتظار</div>
+    
+    <div id="result">
+        <h3>النتيجة:</h3>
+        <p><strong>عنوان المقال:</strong> <span id="resTitle"></span></p>
+        <p><strong>السكربت المقترح للفيديو:</strong> <span id="resScript" style="color: #d9534f; font-weight: bold;"></span></p>
+    </div>
+</div>
+
+<script>
+    async function convertBlog() {
+        const urlInput = document.getElementById('blogUrl').value.trim();
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+        
+        if (!urlInput) {
+            alert('الرجاء إدخال رابط صحيح!');
+            return;
+        }
+
+        resultDiv.style.display = 'none';
+        loadingDiv.style.display = 'block';
+
+        try {
+            const response = await fetch('/api/convert-blog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: urlInput })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                document.getElementById('resTitle').innerText = data.article_title;
+                document.getElementById('resScript').innerText = data.generated_video_script;
+                resultDiv.style.display = 'block';
+            } else {
+                alert('خطأ: ' + (data.detail || 'حدث مشكلة أثناء جلب المقال'));
+            }
+        } catch (error) {
+            alert('تعذر الاتصال بالخادم السحابي. تأكد من صحة الرابط أو المحاولة لاحقاً.');
+            console.error(error);
+        } finally {
+            loadingDiv.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
+"""
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    if os.path.exists("index.html"):
-        with open("index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>Welcome to BlogToReel.ai Backend on Vercel! 🚀</h1>"
+    return HTML_CONTENT
 
 @app.post("/api/convert-blog")
 def convert_blog_to_script(payload: ArticleRequest):
