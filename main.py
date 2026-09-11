@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import HttpUrl
 from bs4 import BeautifulSoup
 import requests
 import pydantic
+import os
 
 app = FastAPI(
     title="BlogToReel.ai API",
@@ -11,7 +13,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# السماح للواجهة الأمامية بالاتصال (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,9 +24,12 @@ app.add_middleware(
 class ArticleRequest(pydantic.BaseModel):
     url: HttpUrl
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def read_root():
-    return {"message": "Welcome to BlogToReel.ai Backend on Vercel! 🚀"}
+    if os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>Welcome to BlogToReel.ai Backend on Vercel! 🚀</h1>"
 
 @app.post("/api/convert-blog")
 def convert_blog_to_script(payload: ArticleRequest):
