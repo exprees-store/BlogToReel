@@ -148,11 +148,11 @@ HTML_CONTENT = """
     <header>
         <div class="logo">BlogToReel<span>.ai</span></div>
         <nav>
-            <a href="#">Features</a>
-            <a href="#">How It Works</a>
-            <a href="#">Pricing</a>
+            <a href="javascript:void(0);">Features</a>
+            <a href="javascript:void(0);">How It Works</a>
+            <a href="javascript:void(0);">Pricing</a>
         </nav>
-        <a href="#" class="cta-btn">Get Started Free</a>
+        <a href="javascript:void(0);" class="cta-btn">Get Started Free</a>
     </header>
 
     <div class="hero">
@@ -162,7 +162,7 @@ HTML_CONTENT = """
         
         <div class="input-container">
             <input type="url" id="articleUrl" placeholder="https://example.com/article">
-            <button class="process-btn" onclick="processArticle()">Process Article</button>
+            <button class="process-btn" onclick="processArticle(event)">Process Article</button>
         </div>
         
         <div id="resultBox" class="result-box">
@@ -172,7 +172,8 @@ HTML_CONTENT = """
     </div>
 
     <script>
-        async function processArticle() {
+        async function processArticle(event) {
+            event.preventDefault();
             const url = document.getElementById('articleUrl').value;
             const resultBox = document.getElementById('resultBox');
             const resTitle = document.getElementById('resTitle');
@@ -188,8 +189,7 @@ HTML_CONTENT = """
             resultBox.style.display = "block";
 
             try {
-                // إرسال الطلب إلى نفس الرابط الأساسي مع معامل الرابط لتفادي أي أخطاء مسارات
-                const res = await fetch(`/?url=${encodeURIComponent(url)}`);
+                const res = await fetch(`/api/index?url=${encodeURIComponent(url)}`);
                 const data = await res.json();
                 
                 if(res.ok) {
@@ -210,8 +210,8 @@ HTML_CONTENT = """
 """
 
 @app.get("/")
+@app.get("/api/index")
 async def main_route(url: str = None):
-    # إذا تم إرسال رابط مع الطلب، قم بعملية السحب وإرجاع النتيجة كـ JSON
     if url:
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -236,5 +236,4 @@ async def main_route(url: str = None):
         except Exception as e:
             return JSONResponse(status_code=500, content={"detail": str(e)})
             
-    # إذا لم يتم إرسال رابط، اعرض الواجهة الاحترافية السوداء
     return HTMLResponse(content=HTML_CONTENT)
