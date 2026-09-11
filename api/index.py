@@ -1,10 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+import requests
+from bs4 import BeautifulSoup
 
 app = FastAPI()
 
-# تصميم الواجهة السوداء الاحترافية بالكامل
 HTML_CONTENT = """
 <!DOCTYPE html>
 <html lang="en">
@@ -59,7 +60,7 @@ HTML_CONTENT = """
         }
         .hero {
             text-align: center;
-            margin-top: 80px;
+            margin-top: 60px;
             max-width: 900px;
             padding: 0 20px;
         }
@@ -75,7 +76,7 @@ HTML_CONTENT = """
             margin-bottom: 25px;
         }
         h1 {
-            font-size: 56px;
+            font-size: 48px;
             line-height: 1.1;
             font-weight: 800;
             margin-bottom: 20px;
@@ -87,8 +88,8 @@ HTML_CONTENT = """
         }
         p.subtitle {
             color: #9ca3af;
-            font-size: 18px;
-            margin-bottom: 40px;
+            font-size: 17px;
+            margin-bottom: 30px;
             line-height: 1.5;
         }
         .input-container {
@@ -120,10 +121,26 @@ HTML_CONTENT = """
             cursor: pointer;
             font-size: 15px;
         }
-        .error-msg {
-            color: #4ade80;
-            margin-top: 15px;
+        .result-box {
+            margin-top: 25px;
+            text-align: left;
+            background: #111827;
+            border: 1px solid #374151;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+        .result-box h3 {
+            color: #c084fc;
+            margin-bottom: 10px;
+        }
+        .result-box p {
+            color: #d1d5db;
             font-size: 14px;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -149,22 +166,27 @@ HTML_CONTENT = """
             <button class="process-btn" onclick="processArticle()">Process Article</button>
         </div>
         
-        <div id="statusBox" class="error-msg"></div>
+        <div id="resultBox" class="result-box">
+            <h3 id="resTitle"></h3>
+            <p id="resDesc"></p>
+        </div>
     </div>
 
     <script>
         async function processArticle() {
             const url = document.getElementById('articleUrl').value;
-            const statusBox = document.getElementById('statusBox');
+            const resultBox = document.getElementById('resultBox');
+            const resTitle = document.getElementById('resTitle');
+            const resDesc = document.getElementById('resDesc');
             
             if(!url) {
-                statusBox.style.color = "#f87171";
-                statusBox.innerText = "Please enter a valid article URL.";
+                alert("Please enter a valid article URL.");
                 return;
             }
 
-            statusBox.style.color = "#c084fc";
-            statusBox.innerText = "⏳ Processing article via Python backend...";
+            resTitle.innerText = "⏳ Extracting article content...";
+            resDesc.innerText = "Connecting to Python backend to scrape and analyze the blog post...";
+            resultBox.style.display = "block";
 
             try {
                 const response = await fetch('/api/process', {
@@ -173,11 +195,17 @@ HTML_CONTENT = """
                     body: JSON.stringify({ url: url })
                 });
                 const data = await response.json();
-                statusBox.style.color = "#4ade80";
-                statusBox.innerText = "✅ Success: " + data.message;
+                
+                if(response.ok) {
+                    resTitle.innerText = "✅ Successfully Extracted: " + data.title;
+                    resDesc.innerText = data.summary;
+                } else {
+                    resTitle.innerText = "❌ Error";
+                    resDesc.innerText = data.detail || "Failed to process the article.";
+                }
             } catch (error) {
-                statusBox.style.color = "#4ade80";
-                statusBox.innerText = "✅ Connected to Python Backend successfully!";
+                resTitle.innerText = "❌ Connection Error";
+                resDesc.innerText = "Could not reach the Python backend server.";
             }
         }
     </script>
@@ -194,4 +222,30 @@ async def read_root():
 
 @app.post("/api/process")
 async def process_article(data: ArticleRequest):
-    return {"status": "success", "message": f"Processed URL: {data.url}"}
+    try:
+        # محاولة جلب المقال الحقيقي عبر مكتبة requests
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        resp = requests.get(data.url, headers=headers, timeout=10)
+        
+        if resp.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Could not fetch URL (Status code: {resp.status_code})")
+            
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        
+        # استخراج عنوان المقال
+        title = soup.title.string if soup.title else "No Title Found"
+        
+        # استخراج أول فقرات نصية كمخلص مبدئي
+        paragraphs = soup.find_all('p')
+        text_snippet = " ".join([p.get_text() for p in paragraphs[:4]]) if paragraphs else "No content paragraphs found."
+        
+        if len(text_snippet) > 300:
+            text_snippet = text_snippet[:300] + "..."
+
+        return {
+            "status": "success",
+            "title": title.strip(),
+            "summary": f"Extracted text preview: {text_snippet}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
