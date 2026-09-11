@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 import requests
 from bs4 import BeautifulSoup
@@ -195,7 +195,7 @@ HTML_CONTENT = """
                 try {
                     data = JSON.parse(responseText);
                 } catch (err) {
-                    throw new Error("Server returned non-JSON response: " + responseText.substring(0, 150));
+                    throw new Error("Server error or timeout. Raw response: " + responseText.substring(0, 100));
                 }
                 
                 if(res.ok) {
@@ -221,10 +221,10 @@ async def main_route(url: str = None):
         try:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             }
-            resp = requests.get(url, headers=headers, timeout=15)
+            # تقليص الـ timeout إلى 4 ثوانٍ لضمان عدم تجاوز حدود Vercel وإرجاع JSON نظيف
+            resp = requests.get(url, headers=headers, timeout=4)
             
             if resp.status_code != 200:
                 return JSONResponse(status_code=400, content={"detail": f"Failed to fetch page (HTTP Status: {resp.status_code})"})
@@ -240,12 +240,14 @@ async def main_route(url: str = None):
             elif len(text_snippet) > 400:
                 text_snippet = text_snippet[:400] + "..."
 
-            return {
+            return JSONResponse(content={
                 "status": "success",
                 "title": title.strip(),
                 "summary": f"Extracted text preview: {text_snippet}"
-            }
+            })
+        except requests.exceptions.Timeout:
+            return JSONResponse(status_code=500, content={"detail": "Request timed out while connecting to the target blog."})
         except Exception as e:
-            return JSONResponse(status_code=500, content={"detail": f"Server processing error: {str(e)}"})
+            return JSONResponse(status_code=500, content={"detail": f"Server error: {str(e)}"})
             
     return HTMLResponse(content=HTML_CONTENT)
