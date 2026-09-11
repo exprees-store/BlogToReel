@@ -212,23 +212,31 @@ HTML_CONTENT = """
 async def main_route(url: str = None):
     if url:
         try:
-            # تحديث الـ Headers لتفادي حظر 429 (Too Many Requests)
+            # ترويسات متصفح حقيقي لتجاوز أنظمة الحماية في بلوجر
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Connection': 'keep-alive',
             }
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = requests.get(url, headers=headers, timeout=15)
             
             if resp.status_code != 200:
-                return JSONResponse(status_code=400, content={"detail": f"Could not fetch URL (Status: {resp.status_code})"})
+                return JSONResponse(status_code=400, content={"detail": f"Failed to fetch page (HTTP Status: {resp.status_code})"})
                 
             soup = BeautifulSoup(resp.text, 'html.parser')
-            title = soup.title.string if soup.title else "No Title Found"
-            paragraphs = soup.find_all('p')
-            text_snippet = " ".join([p.get_text() for p in paragraphs[:4]]) if paragraphs else "No content paragraphs found."
             
-            if len(text_snippet) > 300:
-                text_snippet = text_snippet[:300] + "..."
+            # استخراج العنوان بدقة
+            title = soup.title.string if soup.title else "No Title Found"
+            
+            # استخراج الفقرات النصية من المقال
+            paragraphs = soup.find_all('p')
+            text_snippet = " ".join([p.get_text() for p in paragraphs if len(p.get_text()) > 20])
+            
+            if not text_snippet:
+                text_snippet = "No readable content paragraphs found in this article."
+            elif len(text_snippet) > 400:
+                text_snippet = text_snippet[:400] + "..."
 
             return {
                 "status": "success",
@@ -236,6 +244,6 @@ async def main_route(url: str = None):
                 "summary": f"Extracted text preview: {text_snippet}"
             }
         except Exception as e:
-            return JSONResponse(status_code=500, content={"detail": str(e)})
+            return JSONResponse(status_code=500, content={"detail": f"Server processing error: str({e})"})
             
     return HTMLResponse(content=HTML_CONTENT)
