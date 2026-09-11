@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
 import requests
 from bs4 import BeautifulSoup
 
@@ -189,13 +188,8 @@ HTML_CONTENT = """
             resultBox.style.display = "block";
 
             try {
-                // إرسال الطلب لنفس المسار الحالي الذي يعالج الـ POST في بايثون
-                const res = await fetch(window.location.href, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-                
+                // استخدام طريقة GET الآمنة عبر تمرير الرابط في الـ URL لتفادي قيود Vercel للـ POST
+                const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
                 const data = await res.json();
                 
                 if(res.ok) {
@@ -215,18 +209,15 @@ HTML_CONTENT = """
 </html>
 """
 
-class ArticleRequest(BaseModel):
-    url: str
-
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     return HTML_CONTENT
 
-@app.post("/")
-async def process_article(data: ArticleRequest):
+@app.get("/api/scrape")
+async def scrape_article(url: str):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        resp = requests.get(data.url, headers=headers, timeout=10)
+        resp = requests.get(url, headers=headers, timeout=10)
         
         if resp.status_code != 200:
             raise HTTPException(status_code=400, detail=f"Could not fetch URL (Status code: {resp.status_code})")
