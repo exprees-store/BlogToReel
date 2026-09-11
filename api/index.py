@@ -188,7 +188,6 @@ HTML_CONTENT = """
             resultBox.style.display = "block";
 
             try {
-                // إرسال الطلب إلى نفس الرابط مع معامل الـ url لجلب البيانات برمجياً
                 const res = await fetch(`/?url=${encodeURIComponent(url)}`);
                 const data = await res.json();
                 
@@ -211,10 +210,13 @@ HTML_CONTENT = """
 
 @app.get("/", response_class=HTMLResponse)
 async def main_route(url: str = None):
-    # إذا تم تمرير رابط، جلب محتوى المقال وإرجاعه بصيغة JSON
     if url:
         try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            # تحديث الـ Headers لتفادي حظر 429 (Too Many Requests)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+            }
             resp = requests.get(url, headers=headers, timeout=10)
             
             if resp.status_code != 200:
@@ -236,5 +238,4 @@ async def main_route(url: str = None):
         except Exception as e:
             return JSONResponse(status_code=500, content={"detail": str(e)})
             
-    # إذا لم يوجد رابط، يتم عرض الواجهة الاحترافية للموقع
     return HTMLResponse(content=HTML_CONTENT)
