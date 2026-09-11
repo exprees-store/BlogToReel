@@ -7,11 +7,11 @@ import pydantic
 
 app = FastAPI(
     title="BlogToReel.ai API",
-    description="Backend service for converting blog posts into viral short video scripts and data.",
+    description="Backend service for converting blog posts into viral short video scripts.",
     version="1.0.0"
 )
 
-# Allow the frontend to connect to the server (CORS)
+# السماح للواجهة الأمامية بالاتصال (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,35 +25,29 @@ class ArticleRequest(pydantic.BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to BlogToReel.ai Backend! Service is running successfully. 🚀"}
+    return {"message": "Welcome to BlogToReel.ai Backend on Vercel! 🚀"}
 
 @app.post("/api/convert-blog")
 def convert_blog_to_script(payload: ArticleRequest):
     target_url = str(payload.url)
     
     try:
-        # 1. Fetch the blog page content
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(target_url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             raise HTTPException(status_code=400, detail="Could not fetch the article from the provided URL.")
         
-        # 2. Extract text and title using BeautifulSoup
         soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Try to retrieve the article title
         title = soup.find('h1')
         article_title = title.get_text().strip() if title else "Untitled Article"
         
-        # Extract the main article paragraphs
         paragraphs = soup.find_all('p')
-        content_text = " ".join([p.get_text() for p in paragraphs[:5]]) # Take the first 5 paragraphs as an example
+        content_text = " ".join([p.get_text() for p in paragraphs[:5]])
         
         if not content_text:
             content_text = "No readable content found on this page."
 
-        # Simulate converting the article into a short video script (Shorts/Reels Script)
         video_script = f"Hook: Did you know this? -> {article_title[:60]}... Summary: {content_text[:150]}... Call to Action: Read the full article link in bio!"
 
         return {
@@ -61,7 +55,7 @@ def convert_blog_to_script(payload: ArticleRequest):
             "article_title": article_title,
             "extracted_text_preview": content_text[:300] + "...",
             "generated_video_script": video_script,
-            "message": "Blog processed successfully! Ready for AI voiceover and rendering."
+            "message": "Blog processed successfully!"
         }
 
     except Exception as e:
