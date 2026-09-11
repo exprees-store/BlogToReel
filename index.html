@@ -180,8 +180,8 @@
             resultBox.style.display = "block";
 
             try {
-                // الاتصال بمسار الـ API المباشر على Vercel
-                const res = await fetch('/api', {
+                // الاتصال المباشر بالرابط الرسمي لتجنب مشاكل المسارات في Vercel
+                const res = await fetch('https://blog-to-reel.vercel.app/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: url })
