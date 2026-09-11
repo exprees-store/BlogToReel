@@ -189,7 +189,14 @@ HTML_CONTENT = """
 
             try {
                 const res = await fetch(`/?url=${encodeURIComponent(url)}`);
-                const data = await res.json();
+                const responseText = await res.text();
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (err) {
+                    throw new Error("Server returned non-JSON response: " + responseText.substring(0, 150));
+                }
                 
                 if(res.ok) {
                     resTitle.innerText = "✅ Successfully Extracted: " + data.title;
@@ -200,7 +207,7 @@ HTML_CONTENT = """
                 }
             } catch (error) {
                 resTitle.innerText = "❌ Connection Error";
-                resDesc.innerText = "Could not reach the Python backend server. Details: " + error.message;
+                resDesc.innerText = "Details: " + error.message;
             }
         }
     </script>
@@ -212,12 +219,10 @@ HTML_CONTENT = """
 async def main_route(url: str = None):
     if url:
         try:
-            # ترويسات متصفح حقيقي لتجاوز أنظمة الحماية في بلوجر
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
-                'Connection': 'keep-alive',
             }
             resp = requests.get(url, headers=headers, timeout=15)
             
@@ -225,11 +230,8 @@ async def main_route(url: str = None):
                 return JSONResponse(status_code=400, content={"detail": f"Failed to fetch page (HTTP Status: {resp.status_code})"})
                 
             soup = BeautifulSoup(resp.text, 'html.parser')
-            
-            # استخراج العنوان بدقة
             title = soup.title.string if soup.title else "No Title Found"
             
-            # استخراج الفقرات النصية من المقال
             paragraphs = soup.find_all('p')
             text_snippet = " ".join([p.get_text() for p in paragraphs if len(p.get_text()) > 20])
             
@@ -244,6 +246,6 @@ async def main_route(url: str = None):
                 "summary": f"Extracted text preview: {text_snippet}"
             }
         except Exception as e:
-            return JSONResponse(status_code=500, content={"detail": f"Server processing error: str({e})"})
+            return JSONResponse(status_code=500, content={"detail": f"Server processing error: {str(e)}"})
             
     return HTMLResponse(content=HTML_CONTENT)
