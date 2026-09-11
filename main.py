@@ -194,6 +194,6 @@ def convert_blog_to_script(payload: ArticleRequest):
             "generated_video_script": video_script,
             "message": "Blog processed successfully!"
         }
-
+# Ready for production
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
