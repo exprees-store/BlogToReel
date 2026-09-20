@@ -59,7 +59,7 @@ HTML_CONTENT = """
         }
         .hero {
             text-align: center;
-            margin-top: 60px;
+            margin-top: 40px;
             max-width: 900px;
             padding: 0 20px;
         }
@@ -72,13 +72,13 @@ HTML_CONTENT = """
             border-radius: 20px;
             font-size: 13px;
             color: #e9d5ff;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         h1 {
-            font-size: 48px;
+            font-size: 42px;
             line-height: 1.1;
             font-weight: 800;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         h1 span.highlight2 {
             background: linear-gradient(90deg, #c084fc, #f472b6);
@@ -87,8 +87,8 @@ HTML_CONTENT = """
         }
         p.subtitle {
             color: #9ca3af;
-            font-size: 17px;
-            margin-bottom: 30px;
+            font-size: 16px;
+            margin-bottom: 25px;
             line-height: 1.5;
         }
         .input-container {
@@ -121,7 +121,7 @@ HTML_CONTENT = """
             font-size: 15px;
         }
         .result-box {
-            margin-top: 25px;
+            margin-top: 20px;
             text-align: left;
             background: #111827;
             border: 1px solid #374151;
@@ -154,6 +154,70 @@ HTML_CONTENT = """
             display: none;
             margin-top: 10px;
         }
+        
+        /* تصميم مشغل الريلز السينمائي (Reel Simulator) */
+        .reel-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .reel-phone {
+            width: 340px;
+            height: 600px;
+            background: linear-gradient(135deg, #1e1b4b, #311042);
+            border: 4px solid #c084fc;
+            border-radius: 30px;
+            box-shadow: 0 0 40px rgba(192, 132, 252, 0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .reel-header {
+            font-size: 14px;
+            color: #d8b4fe;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .reel-content {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.6;
+            animation: fadeInOut 3s infinite alternate;
+        }
+        .reel-footer {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .close-reel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0.4; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -181,7 +245,17 @@ HTML_CONTENT = """
         <div id="resultBox" class="result-box">
             <h3 id="resTitle"></h3>
             <p id="resDesc"></p>
-            <button id="videoBtn" class="generate-video-btn" onclick="generateVideo()">🎬 Generate Short Video from Script</button>
+            <button id="videoBtn" class="generate-video-btn" onclick="openReelPlayer()">🎬 Play Interactive Reel / Record</button>
+        </div>
+    </div>
+
+    <!-- نافذة مشغل الريلز المتحرك -->
+    <div id="reelModal" class="reel-modal">
+        <div class="reel-phone">
+            <button class="close-reel" onclick="closeReelPlayer()">✕</button>
+            <div class="reel-header">🔥 VIRAL SHORT PREVIEW</div>
+            <div id="reelText" class="reel-content">Loading script...</div>
+            <div class="reel-footer">📱 TikTok / Reels Ready</div>
         </div>
     </div>
 
@@ -231,12 +305,20 @@ HTML_CONTENT = """
             }
         }
 
-        function generateVideo() {
+        function openReelPlayer() {
             if(!extractedScript) {
-                alert("No script available to convert.");
+                alert("No script available.");
                 return;
             }
-            alert("🚀 Video generation started successfully! (AI rendering pipeline triggered with your script).");
+            const modal = document.getElementById('reelModal');
+            const reelText = document.getElementById('reelText');
+            reelText.innerText = extractedScript;
+            modal.style.display = "flex";
+        }
+
+        function closeReelPlayer() {
+            const modal = document.getElementById('reelModal');
+            modal.style.display = "none";
         }
     </script>
 </body>
@@ -270,7 +352,7 @@ async def main_route(url: str = None):
             return JSONResponse(content={
                 "status": "success",
                 "title": title.strip(),
-                "summary": f"Extracted text preview: {text_snippet}"
+                "summary": f"{text_snippet}"
             })
         except requests.exceptions.Timeout:
             return JSONResponse(status_code=500, content={"detail": "Request timed out while connecting to the target blog."})
