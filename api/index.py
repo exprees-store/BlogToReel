@@ -220,14 +220,11 @@ HTML_CONTENT = """
                     resTitle.innerText = "✅ Successfully Extracted: " + data.title;
                     resDesc.innerText = data.summary;
                     extractedScript = data.summary;
-                    // إظهار زر توليد الفيديو بعد نجاح الاستخراج
                     videoBtn.style.display = "inline-block";
                 } else {
                     resTitle.innerText = "❌ Error";
                     resDesc.innerText = data.detail || "Failed to process the article.";
                 }
-            } else (error) { // تم تصحيح الصيغة هنا لتجنب أخطاء المتصفح
-                // تم معالجة الخطأ
             } catch (error) {
                 resTitle.innerText = "❌ Connection Error";
                 resDesc.innerText = "Details: " + error.message;
@@ -240,7 +237,6 @@ HTML_CONTENT = """
                 return;
             }
             alert("🚀 Video generation started successfully! (AI rendering pipeline triggered with your script).");
-            // يمكنك هنا لاحقاً توجيه المستخدم أو ربط دالة إرسال النص لخدمة توليد الفيديو الفعلي
         }
     </script>
 </body>
